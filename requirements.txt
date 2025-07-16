@@ -1,5 +1,9 @@
+aiohappyeyeballs==2.6.1
+aiohttp==3.12.14
+aiosignal==1.4.0
 aiosqlite==0.21.0
 anyio==4.9.0
+attrs==25.3.0
 beautifulsoup4==4.13.4
 cachetools==6.1.0
 certifi==2025.7.9
@@ -11,12 +15,14 @@ cycler==0.12.1
 finnhub-python==2.4.24
 fonttools==4.58.5
 frozendict==2.4.6
+frozenlist==1.7.0
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
 idna==3.10
 kiwisolver==1.4.8
 matplotlib==3.10.3
+multidict==6.6.3
 multitasking==0.0.11
 numpy==2.3.1
 packaging==25.0
@@ -24,6 +30,7 @@ pandas==2.3.1
 peewee==3.18.2
 pillow==11.3.0
 platformdirs==4.3.8
+propcache==0.3.2
 protobuf==6.31.1
 pycparser==2.22
 pyparsing==3.2.3
@@ -40,4 +47,5 @@ typing_extensions==4.14.1
 tzdata==2025.2
 urllib3==2.5.0
 websockets==15.0.1
+yarl==1.20.1
 yfinance==0.2.65

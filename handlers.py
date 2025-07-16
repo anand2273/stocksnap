@@ -115,8 +115,7 @@ async def earnings_callback_handler(update: Update, context: ContextTypes.DEFAUL
     data = query.data
     ticker = data.partition("schedule_earnings_")[2]
     earnings_date = get_earnings_date(ticker)
-
-    set_reminder(earnings_date, ticker)
+    
     # set_earnings_reminder(ticker)
     message = escape_md(f"Earnings reminder has beens set! The next report is scheduled for {earnings_date}")
     await context.bot.send_message(chat_id=update.effective_chat.id,
