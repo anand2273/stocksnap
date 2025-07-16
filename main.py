@@ -1,37 +1,37 @@
 import os
 from dotenv import load_dotenv
-from telegram.ext import Application
+from telegram.ext import Application, CommandHandler, CallbackContext
 from telegram import Update
-from telegram.ext import CommandHandler, CallbackContext
 from aiohttp import web
 
-# Load env
+# Load env vars
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = f"https://your-app-name.onrender.com/webhook"
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Set this in Render
 
-# Your bot handlers
+# Create Telegram app
+bot_app = Application.builder().token(TOKEN).build()
+
 async def start(update: Update, context: CallbackContext):
     await update.message.reply_text("Bot is live via webhook!")
 
-# Create the app
-bot_app = Application.builder().token(TOKEN).build()
 bot_app.add_handler(CommandHandler("start", start))
 
-# Webhook handler for Telegram
+# Webhook handler
 async def webhook_handler(request):
     data = await request.json()
     update = Update.de_json(data, bot_app.bot)
     await bot_app.process_update(update)
     return web.Response()
 
-# aiohttp server
+# AIOHTTP setup
 web_app = web.Application()
 web_app.router.add_post("/webhook", webhook_handler)
 
-# Main Entry Point
+# Main Entry
 if __name__ == "__main__":
     import asyncio
+
     async def main():
         await bot_app.bot.delete_webhook()
         await bot_app.bot.set_webhook(url=WEBHOOK_URL)
@@ -39,5 +39,5 @@ if __name__ == "__main__":
 
     asyncio.run(main())
 
-    # Start aiohttp server (this is where Render sees port 8000 open)
-    web.run_app(web_app, host="0.0.0.0", port=8000)
+    PORT = int(os.environ.get("PORT", 8000))
+    web.run_app(web_app, host="0.0.0.0", port=PORT)
