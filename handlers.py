@@ -65,7 +65,7 @@ async def stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tgt = safe_escape_md(info.get("targetMeanPrice"))
 
     news_text = "\n"
-    for article in latest_news[:5]:
+    for article in latest_news[:3]:
         summary = article.get("summary")
         if not summary:
             continue
