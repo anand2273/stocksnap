@@ -1,43 +1,26 @@
-import os
-from dotenv import load_dotenv
-from telegram.ext import Application, CommandHandler, CallbackContext
+import logging, os
 from telegram import Update
-from aiohttp import web
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
+from dotenv import load_dotenv
+from handlers import start, stock, earnings_callback_handler
 
-# Load env vars
 load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Set this in Render
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# Create Telegram app
-bot_app = Application.builder().token(TOKEN).build()
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
-async def start(update: Update, context: CallbackContext):
-    await update.message.reply_text("Bot is live via webhook!")
+application = ApplicationBuilder().token(BOT_TOKEN).build()
+ 
+start_handler = CommandHandler('start', start)
+stock_handler = CommandHandler('stock', stock)
+earnings_scheduling_handler = CallbackQueryHandler(earnings_callback_handler, pattern=r"^schedule_earnings_")
 
-bot_app.add_handler(CommandHandler("start", start))
+application.add_handler(start_handler)
+application.add_handler(stock_handler)
+application.add_handler(earnings_scheduling_handler)
 
-# Webhook handler
-async def webhook_handler(request):
-    data = await request.json()
-    update = Update.de_json(data, bot_app.bot)
-    await bot_app.process_update(update)
-    return web.Response()
-
-# AIOHTTP setup
-web_app = web.Application()
-web_app.router.add_post("/webhook", webhook_handler)
-
-# Main Entry
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        await bot_app.bot.delete_webhook()
-        await bot_app.bot.set_webhook(url=WEBHOOK_URL)
-        print("Webhook set!")
-
-    asyncio.run(main())
-
-    PORT = int(os.environ.get("PORT", 8000))
-    web.run_app(web_app, host="0.0.0.0", port=PORT)
+if __name__ == '__main__':
+    application.run_polling()
