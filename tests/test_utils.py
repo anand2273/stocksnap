@@ -7,6 +7,7 @@ import pytest
 from utils import (
     StockLookupError,
     _extract_news,
+    _price_axis_limits,
     create_price_chart,
     format_market_cap,
     format_number,
@@ -44,6 +45,21 @@ def test_market_cap_formatting():
     assert format_market_cap(2_500_000_000) == "2.50B"
     assert format_market_cap(None) == "N/A"
     assert format_market_cap(float("inf")) == "N/A"
+
+
+def test_price_axis_tracks_observed_range_instead_of_zero():
+    minimum, maximum = _price_axis_limits([198.0, 200.0, 202.0])
+
+    assert minimum == pytest.approx(197.52)
+    assert maximum == pytest.approx(202.48)
+    assert minimum > 0
+
+
+def test_price_axis_gives_flat_data_visible_padding():
+    minimum, maximum = _price_axis_limits([100.0, 100.0])
+
+    assert minimum == 99.0
+    assert maximum == 101.0
 
 
 def test_extract_news_supports_nested_yahoo_payload_and_filters_urls():

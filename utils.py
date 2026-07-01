@@ -123,20 +123,41 @@ def _fast_info_value(fast_info: object, *keys: str) -> object:
     return None
 
 
+def _price_axis_limits(values: object) -> tuple[float, float]:
+    finite_values = [
+        float(value)
+        for value in values
+        if isinstance(value, Real) and isfinite(float(value))
+    ]
+    if not finite_values:
+        raise StockLookupError("No valid closing prices were returned.")
+
+    minimum = min(finite_values)
+    maximum = max(finite_values)
+    spread = maximum - minimum
+    padding = spread * 0.12 if spread else max(abs(maximum) * 0.01, 1.0)
+    return minimum - padding, maximum + padding
+
+
 def create_price_chart(symbol: str, name: str, history: object) -> BytesIO:
     if history is None or getattr(history, "empty", True) or "Close" not in history:
         raise StockLookupError(f"No recent price history was found for {symbol}.")
 
+    close_prices = history["Close"].dropna()
+    y_minimum, y_maximum = _price_axis_limits(close_prices)
+
     figure, axis = plt.subplots(figsize=(10, 4.8))
     figure.patch.set_facecolor("#F8FAFC")
     axis.set_facecolor("#F8FAFC")
-    axis.plot(history.index, history["Close"], color="#16A34A", linewidth=2.5)
+    axis.plot(close_prices.index, close_prices, color="#16A34A", linewidth=2.5)
     axis.fill_between(
-        history.index,
-        history["Close"],
+        close_prices.index,
+        close_prices,
+        y_minimum,
         alpha=0.08,
         color="#16A34A",
     )
+    axis.set_ylim(y_minimum, y_maximum)
     axis.set_title(
         f"{name} · one-month closing price",
         loc="left",
