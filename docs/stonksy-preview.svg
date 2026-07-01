@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Stonksy Telegram stock bot preview</title>
+  <desc id="desc">A branded illustration showing a Telegram stock command, market metrics, and a one-month price chart.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071B15"/>
+      <stop offset="1" stop-color="#123D2D"/>
+    </linearGradient>
+    <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22C55E" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#22C55E" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#020A07" flood-opacity=".35"/>
+    </filter>
+    <clipPath id="chartClip">
+      <rect x="613" y="298" width="446" height="175" rx="12"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#background)"/>
+  <circle cx="1110" cy="48" r="180" fill="#22C55E" opacity=".07"/>
+  <circle cx="72" cy="598" r="220" fill="#38BDF8" opacity=".05"/>
+
+  <g transform="translate(80 76)">
+    <rect width="54" height="54" rx="16" fill="#22C55E"/>
+    <path d="M15 34 25 24l7 7 10-13" fill="none" stroke="#062D1E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="72" y="34" fill="#F8FAFC" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="700">Stonksy</text>
+    <text x="72" y="58" fill="#A7F3D0" font-family="Inter,Arial,sans-serif" font-size="15" letter-spacing="2">TELEGRAM STOCK RESEARCH BOT</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="80" y="180" width="420" height="342" rx="28" fill="#F8FAFC"/>
+    <rect x="80" y="180" width="420" height="72" rx="28" fill="#229ED9"/>
+    <rect x="80" y="224" width="420" height="28" fill="#229ED9"/>
+    <circle cx="122" cy="216" r="21" fill="#DCFCE7"/>
+    <path d="M111 222 120 213l6 6 9-12" fill="none" stroke="#16A34A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="156" y="211" fill="#FFFFFF" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700">Stonksy</text>
+    <text x="156" y="232" fill="#DDF4FF" font-family="Inter,Arial,sans-serif" font-size="13">@StonksyTeleBot</text>
+
+    <rect x="230" y="278" width="224" height="54" rx="18" fill="#DDF5FF"/>
+    <text x="255" y="312" fill="#0F172A" font-family="ui-monospace,SFMono-Regular,monospace" font-size="18">/stock AAPL</text>
+
+    <rect x="112" y="358" width="318" height="123" rx="18" fill="#E8F8EE"/>
+    <text x="135" y="388" fill="#166534" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="700">STONKSY REPORT · APPLE (AAPL)</text>
+    <text x="135" y="420" fill="#334155" font-family="Inter,Arial,sans-serif" font-size="15">Price</text>
+    <text x="285" y="420" fill="#0F172A" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="700">$201.25</text>
+    <text x="135" y="448" fill="#334155" font-family="Inter,Arial,sans-serif" font-size="15">Market cap</text>
+    <text x="285" y="448" fill="#0F172A" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="700">$3.10T</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="550" y="132" width="570" height="430" rx="30" fill="#FFFFFF"/>
+    <text x="604" y="190" fill="#0F172A" font-family="Inter,Arial,sans-serif" font-size="26" font-weight="700">Apple · one-month closing price</text>
+    <text x="604" y="223" fill="#64748B" font-family="Inter,Arial,sans-serif" font-size="15">A concise market snapshot, generated on demand</text>
+
+    <g transform="translate(604 256)">
+      <rect width="135" height="58" rx="13" fill="#F0FDF4"/>
+      <text x="16" y="23" fill="#64748B" font-family="Inter,Arial,sans-serif" font-size="12">PRICE</text>
+      <text x="16" y="45" fill="#166534" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700">$201.25</text>
+      <rect x="151" width="135" height="58" rx="13" fill="#F8FAFC"/>
+      <text x="167" y="23" fill="#64748B" font-family="Inter,Arial,sans-serif" font-size="12">FORWARD P/E</text>
+      <text x="167" y="45" fill="#0F172A" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700">28.10</text>
+      <rect x="302" width="135" height="58" rx="13" fill="#F8FAFC"/>
+      <text x="318" y="23" fill="#64748B" font-family="Inter,Arial,sans-serif" font-size="12">TARGET</text>
+      <text x="318" y="45" fill="#0F172A" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700">$225.00</text>
+    </g>
+
+    <g clip-path="url(#chartClip)">
+      <path d="M613 438 C650 420 670 442 703 408 S760 380 793 395 845 365 880 374 930 335 963 349 1018 314 1059 323 L1059 473 613 473Z" fill="url(#chartFill)"/>
+      <path d="M613 438 C650 420 670 442 703 408 S760 380 793 395 845 365 880 374 930 335 963 349 1018 314 1059 323" fill="none" stroke="#16A34A" stroke-width="5" stroke-linecap="round"/>
+      <line x1="613" y1="473" x2="1059" y2="473" stroke="#E2E8F0"/>
+      <line x1="613" y1="386" x2="1059" y2="386" stroke="#E2E8F0" stroke-dasharray="5 7"/>
+    </g>
+    <text x="613" y="508" fill="#64748B" font-family="Inter,Arial,sans-serif" font-size="13">Jun 01</text>
+    <text x="1015" y="508" fill="#64748B" font-family="Inter,Arial,sans-serif" font-size="13">Jun 30</text>
+    <rect x="604" y="526" width="166" height="6" rx="3" fill="#22C55E"/>
+  </g>
+
+  <text x="80" y="590" fill="#A7F3D0" font-family="Inter,Arial,sans-serif" font-size="16">Python · Telegram Bot API · yfinance · Matplotlib · Render</text>
+  <text x="1120" y="590" text-anchor="end" fill="#D1FAE5" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="700">t.me/StonksyTeleBot →</text>
+</svg>

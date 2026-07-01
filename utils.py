@@ -1,125 +1,183 @@
-# for services like API calls and fetching data from wherever
-import os
-import finnhub as fin
-import requests
-from dotenv import load_dotenv
-from datetime import date
-from cachetools import TTLCache, cached
-import yfinance as yf
 import re
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+from dataclasses import dataclass
 from io import BytesIO
+from math import isfinite
+from numbers import Real
+from urllib.parse import urlparse
 
-load_dotenv()
-FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
-AV_API_KEY = os.getenv("ALPHAVANTAGE_API_KEY")
+import matplotlib
+import yfinance as yf
 
-# caches
-price_cache = TTLCache(maxsize=100, ttl=1800)
-overview_cache = TTLCache(maxsize=100, ttl=1800)
-news_cache = TTLCache(maxsize=100, ttl=1800)
+matplotlib.use("Agg")
 
-client = fin.Client(api_key=f"{FINNHUB_API_KEY}")
+import matplotlib.dates as mdates  # noqa: E402
+import matplotlib.pyplot as plt  # noqa: E402
 
-# API CALLS - PAYWALL PRESENT
-#error handling for API fetches
-
-# mainly for price
-@cached(price_cache)
-def get_quote(ticker: str) -> dict:
-    print("quote api call was made")
-    return client.quote(ticker)
+TICKER_PATTERN = re.compile(r"^[A-Z0-9^][A-Z0-9.^=-]{0,14}$")
 
 
-# contains trailing PE, forward PE, Description, Analyst Ratings, Analyst Target Price, Market Cap, 52 week highs and lows
-@cached(overview_cache)
-def get_overview(ticker: str) -> dict:
-    resp = requests.get("https://www.alphavantage.co/query", {
-                        "function": "OVERVIEW",
-                        "symbol": ticker,
-                        "apikey": AV_API_KEY
-                        })
-    data = resp.json()
-    print("overview api call was made")
-    return data
+class StockLookupError(ValueError):
+    """Raised when a ticker is invalid or market data is unavailable."""
 
-@cached(news_cache)
-def get_news(ticker: str) -> dict:
-    resp = requests.get("https://www.alphavantage.co/query", {
-                        "function":"NEWS_SENTIMENT",
-                        "tickers": ticker,
-                        "sort": "RELEVANCE", "LATEST"
-                        "limit": "0",
-                        "apikey": AV_API_KEY
-                        })
-    data = resp.json()
-    feed = data.get("feed", [])[:3]
-    print("news api call was made")
-    return feed
 
-# API CALLS - YFINANCE (inferior)
+@dataclass(frozen=True)
+class NewsItem:
+    title: str
+    url: str
 
-def get_stock(ticker: str) -> dict:
-    ticker = ticker.upper()
-    stock = yf.Ticker(ticker)
-    if not stock.info.get("shortName"):
-       raise Exception("Ticker not found. Please enter the correct ticker.") 
-    print("inferior yfinance api was called")
-    return stock
 
-def get_plot(ticker: str) -> dict:
-    ticker = ticker.upper()
-    stock = yf.Ticker(ticker)
-    if not stock.info.get("shortName"):
-        raise Exception("Ticker not found. Please enter the correct ticker")
+@dataclass(frozen=True)
+class StockSnapshot:
+    symbol: str
+    name: str
+    price: object
+    market_cap: object
+    forward_pe: object
+    trailing_pe: object
+    year_high: object
+    year_low: object
+    trailing_eps: object
+    target_price: object
+    news: tuple[NewsItem, ...]
+    chart: BytesIO
 
-    hist = stock.history(period="1mo")
-    name = stock.info.get("shortName")
-    print("API WAS SUCCESSFULLY CALLED WHILE PLOTTING. although inferior")
 
-    #plotting
-    plt.figure(figsize=(10,4))
-    plt.plot(hist.index, hist["Close"], label="Close Price", linewidth=2)
-    plt.title(f"{name}'s Last Month Price Movement")
-    plt.xlabel("Date")
-    plt.ylabel("Close Price ($)")
-    plt.grid(True)
-    plt.gca().xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))  # Tick per week
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-    plt.xticks(rotation=45)
+def normalize_ticker(ticker: str) -> str:
+    symbol = ticker.strip().upper()
+    if not TICKER_PATTERN.fullmatch(symbol):
+        raise StockLookupError(
+            "Enter a valid ticker using up to 15 letters, numbers, '.', '-', '^', or '='."
+        )
+    return symbol
 
-    plt.tight_layout()
 
-    buf = BytesIO()
-    plt.savefig(buf, format="png")
-    plt.close()
-    buf.seek(0)
-    return buf
+def format_number(value: object) -> str:
+    if (
+        isinstance(value, Real)
+        and not isinstance(value, bool)
+        and isfinite(float(value))
+    ):
+        return f"{float(value):,.2f}"
+    return "N/A"
 
-def get_earnings_date(ticker: str):
-    ticker = ticker.upper()
-    stock = yf.Ticker(ticker)
-    earnings_date = stock.calendar.get("Earnings Date")[0]
-    return earnings_date
 
-print(get_earnings_date("AAPL"))
+def format_market_cap(value: object) -> str:
+    if (
+        not isinstance(value, Real)
+        or isinstance(value, bool)
+        or not isfinite(float(value))
+    ):
+        return "N/A"
 
-# Formatting and other misc functions
-def escape_md(text):
-    if not isinstance(text, str):
-        return ""
-    return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', text)
+    amount = float(value)
+    for unit in ("", "K", "M", "B", "T", "Q"):
+        if abs(amount) < 1000:
+            return f"{amount:,.2f}{unit}"
+        amount /= 1000
+    return f"{amount:,.2f}Q"
 
-def safe_escape_md(val):
-    return escape_md(f"{val:.2f}") if isinstance(val, (int, float)) else escape_md(str(val) if val is not None else "N/A")
 
-def format_market_cap(val):
-    if type(val) == str:
-        return val
-    val = float(val)
-    for unit in ['','K','M','B','T','Q']:
-        if abs(val) < 1000.0:
-            return f"{val:.2f}{unit}"
-        val /= 1000.0
-    return f"{val:.2f}Q"
+def _valid_http_url(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    parsed = urlparse(value)
+    return value if parsed.scheme in {"http", "https"} and parsed.netloc else None
+
+
+def _extract_news(raw_news: object) -> tuple[NewsItem, ...]:
+    if not isinstance(raw_news, list):
+        return ()
+
+    articles: list[NewsItem] = []
+    for raw_article in raw_news:
+        if not isinstance(raw_article, dict):
+            continue
+        article = raw_article.get("content") or raw_article
+        if not isinstance(article, dict):
+            continue
+
+        title = article.get("title") or article.get("summary")
+        link = article.get("clickThroughUrl") or article.get("canonicalUrl")
+        url = link.get("url") if isinstance(link, dict) else link
+        valid_url = _valid_http_url(url)
+        if isinstance(title, str) and title.strip() and valid_url:
+            articles.append(NewsItem(title=title.strip(), url=valid_url))
+        if len(articles) == 3:
+            break
+    return tuple(articles)
+
+
+def create_price_chart(symbol: str, name: str, history: object) -> BytesIO:
+    if history is None or getattr(history, "empty", True) or "Close" not in history:
+        raise StockLookupError(f"No recent price history was found for {symbol}.")
+
+    figure, axis = plt.subplots(figsize=(10, 4.8))
+    figure.patch.set_facecolor("#F8FAFC")
+    axis.set_facecolor("#F8FAFC")
+    axis.plot(history.index, history["Close"], color="#16A34A", linewidth=2.5)
+    axis.fill_between(
+        history.index,
+        history["Close"],
+        alpha=0.08,
+        color="#16A34A",
+    )
+    axis.set_title(
+        f"{name} · one-month closing price",
+        loc="left",
+        fontsize=15,
+        fontweight="bold",
+        color="#0F172A",
+        pad=14,
+    )
+    axis.set_ylabel("Price (USD)", color="#475569")
+    axis.grid(axis="y", color="#CBD5E1", alpha=0.55, linewidth=0.8)
+    axis.xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))
+    axis.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
+    axis.tick_params(colors="#475569")
+    axis.spines[["top", "right", "left"]].set_visible(False)
+    axis.spines["bottom"].set_color("#CBD5E1")
+    figure.autofmt_xdate(rotation=0)
+    figure.tight_layout()
+
+    buffer = BytesIO()
+    figure.savefig(buffer, format="png", dpi=150, bbox_inches="tight")
+    plt.close(figure)
+    buffer.seek(0)
+    return buffer
+
+
+def get_stock_snapshot(ticker: str) -> StockSnapshot:
+    symbol = normalize_ticker(ticker)
+    try:
+        stock = yf.Ticker(symbol)
+        info = stock.info or {}
+        history = stock.history(period="1mo")
+    except Exception as exc:
+        raise StockLookupError(
+            f"Stonksy could not load {symbol}. Check the ticker and try again."
+        ) from exc
+
+    name = info.get("shortName") if isinstance(info, dict) else None
+    if not isinstance(name, str) or not name.strip():
+        raise StockLookupError(f"No market data was found for {symbol}.")
+
+    try:
+        raw_news = stock.news
+    except Exception:
+        raw_news = []
+
+    chart = create_price_chart(symbol, name, history)
+    return StockSnapshot(
+        symbol=symbol,
+        name=name.strip(),
+        price=info.get("regularMarketPrice") or info.get("currentPrice"),
+        market_cap=info.get("marketCap"),
+        forward_pe=info.get("forwardPE"),
+        trailing_pe=info.get("trailingPE"),
+        year_high=info.get("fiftyTwoWeekHigh"),
+        year_low=info.get("fiftyTwoWeekLow"),
+        trailing_eps=info.get("trailingEPS"),
+        target_price=info.get("targetMeanPrice"),
+        news=_extract_news(raw_news),
+        chart=chart,
+    )

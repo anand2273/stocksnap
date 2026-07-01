@@ -1,12 +1,20 @@
 services:
   - type: web
     name: stocksnap
-    env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python main.py"
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
     autoDeploy: true
+    healthCheckPath: /health
     envVars:
+      - key: APP_MODE
+        value: webhook
+      - key: BOT_TOKEN
+        sync: false
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      - key: MPLCONFIGDIR
+        value: /tmp/matplotlib
       - key: PYTHONUNBUFFERED
         value: "1"
-    plan: free
-    healthCheckPath: /
