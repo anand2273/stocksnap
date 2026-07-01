@@ -1,3 +1,4 @@
+import logging
 import re
 from dataclasses import dataclass
 from io import BytesIO
@@ -14,6 +15,7 @@ import matplotlib.dates as mdates  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 
 TICKER_PATTERN = re.compile(r"^[A-Z0-9^][A-Z0-9.^=-]{0,14}$")
+LOGGER = logging.getLogger(__name__)
 
 
 class StockLookupError(ValueError):
@@ -107,6 +109,20 @@ def _extract_news(raw_news: object) -> tuple[NewsItem, ...]:
     return tuple(articles)
 
 
+def _fast_info_value(fast_info: object, *keys: str) -> object:
+    for key in keys:
+        try:
+            if hasattr(fast_info, "get"):
+                value = fast_info.get(key)
+            else:
+                value = getattr(fast_info, key)
+        except Exception:
+            continue
+        if value is not None:
+            return value
+    return None
+
+
 def create_price_chart(symbol: str, name: str, history: object) -> BytesIO:
     if history is None or getattr(history, "empty", True) or "Close" not in history:
         raise StockLookupError(f"No recent price history was found for {symbol}.")
@@ -148,34 +164,64 @@ def create_price_chart(symbol: str, name: str, history: object) -> BytesIO:
 
 def get_stock_snapshot(ticker: str) -> StockSnapshot:
     symbol = normalize_ticker(ticker)
+    stock = yf.Ticker(symbol)
+
     try:
-        stock = yf.Ticker(symbol)
-        info = stock.info or {}
-        history = stock.history(period="1mo")
+        history = stock.history(period="1mo", raise_errors=True)
     except Exception as exc:
+        LOGGER.exception("Yahoo Finance price-history lookup failed for %s", symbol)
         raise StockLookupError(
             f"Stonksy could not load {symbol}. Check the ticker and try again."
         ) from exc
 
-    name = info.get("shortName") if isinstance(info, dict) else None
-    if not isinstance(name, str) or not name.strip():
-        raise StockLookupError(f"No market data was found for {symbol}.")
+    try:
+        raw_info = stock.info
+        info = raw_info if isinstance(raw_info, dict) else {}
+    except Exception:
+        LOGGER.warning(
+            "Yahoo Finance fundamentals lookup failed for %s; using fast-info fallback",
+            symbol,
+            exc_info=True,
+        )
+        info = {}
+
+    try:
+        fast_info = stock.fast_info
+    except Exception:
+        LOGGER.warning("Yahoo Finance fast-info lookup failed for %s", symbol, exc_info=True)
+        fast_info = {}
 
     try:
         raw_news = stock.news
     except Exception:
+        LOGGER.info("Yahoo Finance news lookup failed for %s", symbol, exc_info=True)
         raw_news = []
 
+    raw_name = info.get("shortName") or info.get("longName")
+    name = raw_name.strip() if isinstance(raw_name, str) and raw_name.strip() else symbol
     chart = create_price_chart(symbol, name, history)
     return StockSnapshot(
         symbol=symbol,
-        name=name.strip(),
-        price=info.get("regularMarketPrice") or info.get("currentPrice"),
-        market_cap=info.get("marketCap"),
+        name=name,
+        price=(
+            info.get("regularMarketPrice")
+            or info.get("currentPrice")
+            or _fast_info_value(fast_info, "last_price", "lastPrice")
+        ),
+        market_cap=(
+            info.get("marketCap")
+            or _fast_info_value(fast_info, "market_cap", "marketCap")
+        ),
         forward_pe=info.get("forwardPE"),
         trailing_pe=info.get("trailingPE"),
-        year_high=info.get("fiftyTwoWeekHigh"),
-        year_low=info.get("fiftyTwoWeekLow"),
+        year_high=(
+            info.get("fiftyTwoWeekHigh")
+            or _fast_info_value(fast_info, "year_high", "yearHigh")
+        ),
+        year_low=(
+            info.get("fiftyTwoWeekLow")
+            or _fast_info_value(fast_info, "year_low", "yearLow")
+        ),
         trailing_eps=info.get("trailingEPS"),
         target_price=info.get("targetMeanPrice"),
         news=_extract_news(raw_news),

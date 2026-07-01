@@ -95,9 +95,12 @@ def test_get_stock_snapshot_uses_one_ticker_and_tolerates_news_failure(monkeypat
             "marketCap": 1_000_000,
         }
 
-        def history(self, period):
+        def history(self, period, raise_errors):
             assert period == "1mo"
+            assert raise_errors is True
             return history
+
+        fast_info = {}
 
         @property
         def news(self):
@@ -119,3 +122,38 @@ def test_get_stock_snapshot_uses_one_ticker_and_tolerates_news_failure(monkeypat
     assert snapshot.name == "Example Corp"
     assert snapshot.news == ()
     assert snapshot.chart.read(8) == b"\x89PNG\r\n\x1a\n"
+
+
+def test_get_stock_snapshot_falls_back_when_fundamentals_are_empty(monkeypatch):
+    history = pd.DataFrame(
+        {"Close": [199.0, 201.0]},
+        index=pd.date_range("2026-01-01", periods=2),
+    )
+
+    class FakeTicker:
+        @property
+        def info(self):
+            raise RuntimeError("empty fundamentals response")
+
+        fast_info = {
+            "lastPrice": 201.0,
+            "marketCap": 3_000_000_000_000,
+            "yearHigh": 220.0,
+            "yearLow": 165.0,
+        }
+        news = []
+
+        def history(self, period, raise_errors):
+            assert period == "1mo"
+            assert raise_errors is True
+            return history
+
+    monkeypatch.setattr("utils.yf.Ticker", lambda _: FakeTicker())
+
+    snapshot = get_stock_snapshot("AAPL")
+
+    assert snapshot.name == "AAPL"
+    assert snapshot.price == 201.0
+    assert snapshot.market_cap == 3_000_000_000_000
+    assert snapshot.year_high == 220.0
+    assert snapshot.forward_pe is None
